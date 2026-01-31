@@ -1,0 +1,52 @@
+name: Update Manifest on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get release date
+        id: date
+        run: |
+          RELEASE_DATE=$(date -u +"%Y-%m-%d")
+          echo "date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+
+      - name: Update update-manifest.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RELEASE_DATE="${{ steps.date.outputs.date }}"
+          DOWNLOAD_URL="https://github.com/racclolol/Triple-M-Releases/releases/download/v${VERSION}/CardScannerApp_${VERSION}_x64.msix"
+          RELEASE_NOTES_URL="https://github.com/racclolol/Triple-M-Releases/releases/tag/v${VERSION}"
+
+          cat > update-manifest.json <<EOF
+          {
+            "latestVersion": "${VERSION}",
+            "releaseDate": "${RELEASE_DATE}",
+            "downloadUrl": "${DOWNLOAD_URL}",
+            "releaseNotesUrl": "${RELEASE_NOTES_URL}",
+            "minimumVersion": "1.0.0.0",
+            "updateAvailable": true,
+            "message": "A new version is available!"
+          }
+          EOF
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add update-manifest.json
+          git commit -m "Update manifest to version ${{ steps.version.outputs.version }}" || exit 0
+          git push
