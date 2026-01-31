@@ -9,27 +9,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Triple-M-Releases repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          repository: racclolol/Triple-M-Releases
-          token: ${{ secrets.PAT_TOKEN }}
-          ref: main
 
       - name: Extract version from tag
         id: version
         run: |
-          # Remove 'v' prefix from tag name (e.g., v1.8.0.0 -> 1.8.0.0)
           VERSION="${GITHUB_REF#refs/tags/v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Extracted version: $VERSION"
 
       - name: Get release date
         id: date
         run: |
           RELEASE_DATE=$(date -u +"%Y-%m-%d")
           echo "date=$RELEASE_DATE" >> $GITHUB_OUTPUT
-          echo "Release date: $RELEASE_DATE"
 
       - name: Update update-manifest.json
         run: |
@@ -50,13 +43,10 @@ jobs:
           }
           EOF
 
-          echo "Generated update-manifest.json:"
-          cat update-manifest.json
-
       - name: Commit and push changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add update-manifest.json
-          git commit -m "Update manifest to version ${{ steps.version.outputs.version }}"
+          git commit -m "Update manifest to version ${{ steps.version.outputs.version }}" || exit 0
           git push
